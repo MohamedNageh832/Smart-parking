@@ -66,7 +66,7 @@ void setup() {
   }
 
   lcd.noBlink();
-  delay(1000);
+  delay(2000);
 
   available_slots = slots;
   // Configuring servo
@@ -125,7 +125,7 @@ void loop() {
     }
   }
 
-  if (millis() - door_opened_since > 5500 && millis() - door_opened_since < 6000) { 
+  if (millis() - door_opened_since > 6500 && millis() - door_opened_since < 7000) { 
     closeParkingDoor();
     showBasicMessage();
     
@@ -170,10 +170,15 @@ void showFreeSlots() {
 
 // Parking door controls
 void openParkingDoor() {
+  digitalWrite(9, HIGH);
+  
   for (int i = 0; i <= 90; i++) {
     parking_door.write(i);
     delay(5);
   }
+  
+  delay(1000);
+  digitalWrite(9, LOW);
 }
 
 void closeParkingDoor() {
@@ -199,32 +204,31 @@ void checkSlotsStatus() {
     } 
     
     if (digitalRead(i + 4) == HIGH && slots_check_in[i] != 0) {
-      if (millis() - slots_check_in[i] > 1000) {      
-        if (available_slots == 0) {
-          lcd.clear();
-          lcd.print("Car in slot ");
-          lcd.print(i + 1);
-          lcd.setCursor(0, 1);
-          lcd.print("is leaving..."); 
-        }
-        
-        // Calculating parking price
-        long int total_time = millis() - slots_check_in[i];
-    
-        for (int j = 0; j < 4; j++) {
-          if (total_prices[j] == 0) {
-            checkout_time_mins[j] = total_time / 1000 / 60;
-            checkout_time_secs[j] = (total_time / 1000) % 60;
-            total_prices[j] = (float) total_time / 1000 / 60 * price_per_min;
-            break;
-          }
-        }
+      if (available_slots == 0) {
+        lcd.clear();
+        lcd.print("Car in slot ");
+        lcd.print(1);
+        lcd.setCursor(0, 1);
+        lcd.print("is leaving..."); 
+      }
+      
+      // Calculating parking price
+      int time_now = millis();
+      int total_time = time_now - slots_check_in[i];
   
-        slots_flags[i] = 0;
-        slots_check_in[i] = 0;
-        free_slots[i] = i + 1;
-      } 
-    } 
+      for (int j = 0; j < 4; j++) {
+        if (total_prices[j] == 0) {
+          checkout_time_mins[j] = total_time / 1000 / 60;
+          checkout_time_secs[j] = (total_time / 1000) % 60;
+          total_prices[j] = (float) total_time / 1000 / 60 * price_per_min;
+          break;
+        }
+      }
+
+      slots_flags[i] = 0;
+      slots_check_in[i] = 0;
+      free_slots[i] = i + 1;
+    }  
   }
 }
 
@@ -245,20 +249,13 @@ void showPrice() {
     checkout_time_secs[0] = 0;
     total_prices[0] = 0;
     
-    for (int i = 0; i < slots - 1; i++) {
-      int temp = total_prices[i];
-      total_prices[i] = total_prices[i + 1];
-      total_prices[i + 1] = temp;
-
-      temp = checkout_time_mins[i];
-      checkout_time_mins[i] = checkout_time_mins[i + 1];
-      checkout_time_mins[i + 1] = temp;
-
-      temp = checkout_time_secs[i];
-      checkout_time_secs[i] = checkout_time_secs[i + 1];
-      checkout_time_secs[i + 1] = temp;
+    for (int i = 0; i < 4; i++) {
+      if (total_prices[i] == 0 && total_prices[i + 1] != 0) {
+        int temp = total_prices[i];
+        total_prices[i] = total_prices[i + 1];
+        total_prices[i + 1] = temp;
+      }
     }
-    
     delay(3000);
   }
   
